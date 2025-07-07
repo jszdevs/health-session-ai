@@ -1,4 +1,3 @@
-
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,34 +7,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { User, Settings, Shield, Palette } from "lucide-react";
+import { User, Settings, Shield, Moon } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const UserProfile = () => {
+  const { isDarkMode, toggleDarkMode } = useTheme();
+  const isMobile = useIsMobile();
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
       
-      <div className="flex-1 overflow-auto">
+      <div className={`flex-1 overflow-auto ${isMobile ? 'pb-20' : ''}`}>
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <div className="flex items-center space-x-3">
             <User className="h-6 w-6 text-[#1976D2]" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">User Profile</h1>
-              <p className="text-gray-600">Manage your account settings and preferences</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Profile</h1>
+              <p className="text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
             </div>
           </div>
         </div>
 
         <div className="p-6 max-w-4xl mx-auto space-y-6">
           {/* Profile Information */}
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 dark:text-white">
                 <User className="h-5 w-5" />
                 <span>Profile Information</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="dark:text-gray-400">
                 Update your personal and professional information
               </CardDescription>
             </CardHeader>
@@ -46,23 +50,23 @@ const UserProfile = () => {
                 </div>
                 <div className="space-y-2">
                   <Button variant="outline" size="sm">Change Photo</Button>
-                  <p className="text-sm text-gray-500">JPG, PNG or GIF. Max size 2MB.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">JPG, PNG or GIF. Max size 2MB.</p>
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input id="fullName" defaultValue="Dr. Smith" />
+                  <Label htmlFor="fullName" className="dark:text-gray-300">Full Name</Label>
+                  <Input id="fullName" defaultValue="Dr. Smith" className="dark:bg-gray-700 dark:border-gray-600" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="dr.smith@hospital.com" />
+                  <Label htmlFor="email" className="dark:text-gray-300">Email</Label>
+                  <Input id="email" type="email" defaultValue="dr.smith@hospital.com" className="dark:bg-gray-700 dark:border-gray-600" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="specialty">Medical Specialty</Label>
+                  <Label htmlFor="specialty" className="dark:text-gray-300">Medical Specialty</Label>
                   <Select defaultValue="internal-medicine">
-                    <SelectTrigger>
+                    <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -74,8 +78,8 @@ const UserProfile = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="license">Medical License</Label>
-                  <Input id="license" defaultValue="MD-12345-TX" />
+                  <Label htmlFor="license" className="dark:text-gray-300">Medical License</Label>
+                  <Input id="license" defaultValue="MD-12345-TX" className="dark:bg-gray-700 dark:border-gray-600" />
                 </div>
               </div>
 
@@ -88,13 +92,13 @@ const UserProfile = () => {
           </Card>
 
           {/* AI Preferences */}
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 dark:text-white">
                 <Settings className="h-5 w-5" />
                 <span>AI Assistant Preferences</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="dark:text-gray-400">
                 Configure your AI assistant settings and default prompts
               </CardDescription>
             </CardHeader>
@@ -128,29 +132,39 @@ const UserProfile = () => {
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="dark:border-gray-700" />
 
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Feature Preferences</h3>
+                <h3 className="text-lg font-medium dark:text-white">Feature Preferences</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Voice-Only Mode</p>
-                      <p className="text-sm text-gray-600">Enable hands-free operation</p>
+                      <p className="font-medium dark:text-white">Dark Mode</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Enable dark theme for low-light environments</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                      <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium dark:text-white">Voice-Only Mode</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Enable hands-free operation</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Auto-Pin Important Notes</p>
-                      <p className="text-sm text-gray-600">Automatically save critical findings to patient memory</p>
+                      <p className="font-medium dark:text-white">Auto-Pin Important Notes</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Automatically save critical findings to patient memory</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Real-time Transcription</p>
-                      <p className="text-sm text-gray-600">Show live transcription during sessions</p>
+                      <p className="font-medium dark:text-white">Real-time Transcription</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Show live transcription during sessions</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
@@ -160,10 +174,10 @@ const UserProfile = () => {
           </Card>
 
           {/* Statistics */}
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Usage Statistics</CardTitle>
-              <CardDescription>
+              <CardTitle className="dark:text-white">Usage Statistics</CardTitle>
+              <CardDescription className="dark:text-gray-400">
                 Your activity summary and patient management stats
               </CardDescription>
             </CardHeader>
@@ -210,13 +224,13 @@ const UserProfile = () => {
           </Card>
 
           {/* Security Settings */}
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 dark:text-white">
                 <Shield className="h-5 w-5" />
                 <span>Security & Privacy</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="dark:text-gray-400">
                 Manage your account security and data privacy settings
               </CardDescription>
             </CardHeader>
@@ -224,7 +238,7 @@ const UserProfile = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-gray-600">Add an extra layer of security</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Add an extra layer of security</p>
                 </div>
                 <Badge variant="outline" className="text-green-600 border-green-600">
                   Enabled
@@ -244,6 +258,26 @@ const UserProfile = () => {
                   Privacy Settings
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Demo Mode Card */}
+          <Card className="dark:bg-gray-800 dark:border-gray-700 border-2 border-dashed border-[#1976D2]">
+            <CardHeader>
+              <CardTitle className="text-[#1976D2]">🧪 Demo Mode</CardTitle>
+              <CardDescription className="dark:text-gray-400">
+                Perfect for showcasing to investors or during presentations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Experience a complete patient consultation workflow with pre-loaded data, simulated voice input, and AI-generated medical notes.
+              </p>
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/demo" target="_blank" rel="noopener noreferrer">
+                  Launch Demo Mode
+                </a>
+              </Button>
             </CardContent>
           </Card>
         </div>
