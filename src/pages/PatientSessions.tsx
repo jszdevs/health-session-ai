@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
+import MedicalFileUploader from "@/components/MedicalFileUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -241,6 +241,14 @@ const PatientSessions = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Medical File Parser - New Component */}
+              <MedicalFileUploader 
+                patientId={patientId!}
+                onFileProcessed={(file) => {
+                  console.log("File processed:", file);
+                }}
+              />
 
               {/* Transcription Card */}
               <Card className="dark:bg-gray-800 dark:border-gray-700">
