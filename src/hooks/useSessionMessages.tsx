@@ -12,7 +12,10 @@ export const useSessionMessages = (sessionId?: string) => {
   const { user } = useAuth();
 
   const fetchMessages = async () => {
-    if (!user || !sessionId) return;
+    if (!user || !sessionId) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     const { data, error } = await supabase
@@ -34,7 +37,11 @@ export const useSessionMessages = (sessionId?: string) => {
 
     const { data, error } = await supabase
       .from('session_messages')
-      .insert([{ ...messageData, user_id: user.id }])
+      .insert([{
+        ...messageData,
+        user_id: user.id,
+        timestamp: new Date().toISOString()
+      }])
       .select()
       .single();
 
