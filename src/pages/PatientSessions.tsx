@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -21,97 +22,111 @@ import {
   Plus
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-interface Session {
-  id: string;
-  patientId: string;
-  date: string;
-  transcription: string;
-  aiOutput: string;
-  isPinned: boolean;
-  tags: string[];
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useSessions } from "@/hooks/useSessions";
+import { useToast } from "@/hooks/use-toast";
 
 const PatientSessions = () => {
   const { patientId } = useParams();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { sessions, loading, createSession, updateSession } = useSessions(patientId);
+  const { toast } = useToast();
+  
   const [isRecording, setIsRecording] = useState(false);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [currentSession, setCurrentSession] = useState<any>(null);
   const [transcription, setTranscription] = useState("");
   const [aiOutput, setAiOutput] = useState("");
   const [isPinned, setIsPinned] = useState(false);
+  const [patient, setPatient] = useState<any>(null);
 
-  const mockPatient = {
-    id: patientId,
-    name: "Ali Rehman",
-    age: 45,
-    gender: "Male",
-    condition: "Diabetes",
-    avatar: "AR"
-  };
-
-  // Load sessions from localStorage
+  // Load patient data
   useEffect(() => {
-    const savedSessions = localStorage.getItem(`medassist-sessions-${patientId}`);
-    if (savedSessions) {
-      const parsedSessions = JSON.parse(savedSessions);
-      setSessions(parsedSessions);
-      if (parsedSessions.length > 0) {
-        const latest = parsedSessions[parsedSessions.length - 1];
-        setCurrentSession(latest);
-        setTranscription(latest.transcription);
-        setAiOutput(latest.aiOutput);
-        setIsPinned(latest.isPinned);
+    const fetchPatient = async () => {
+      if (!patientId) return;
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', patientId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching patient:', error);
+      } else {
+        setPatient(data);
       }
-    }
+    };
+    
+    fetchPatient();
   }, [patientId]);
 
-  const createNewSession = () => {
-    const newSession: Session = {
-      id: Date.now().toString(),
-      patientId: patientId!,
-      date: new Date().toISOString(),
-      transcription: "Patient presents with chest pain that started this morning. Pain is described as sharp, 7/10 intensity, radiating to left arm. No shortness of breath. Patient has history of hypertension, currently on lisinopril 10mg daily. No known allergies.",
-      aiOutput: "",
-      isPinned: false,
-      tags: []
-    };
+  // Set current session when sessions load
+  useEffect(() => {
+    if (sessions.length > 0 && !currentSession) {
+      const latest = sessions[0];
+      setCurrentSession(latest);
+      setTranscription(latest.notes || "");
+      setAiOutput(latest.summary || "");
+      setIsPinned(false);
+    }
+  }, [sessions, currentSession]);
 
-    const updatedSessions = [...sessions, newSession];
-    setSessions(updatedSessions);
-    localStorage.setItem(`medassist-sessions-${patientId}`, JSON.stringify(updatedSessions));
+  const createNewSession = async () => {
+    if (!patientId || !patient) return;
     
-    setCurrentSession(newSession);
-    setTranscription(newSession.transcription);
-    setAiOutput("");
-    setIsPinned(false);
+    try {
+      const newSession = await createSession({
+        patient_id: patientId,
+        title: `Session ${new Date().toLocaleDateString()}`,
+        notes: "Patient presents with chest pain that started this morning. Pain is described as sharp, 7/10 intensity, radiating to left arm. No shortness of breath. Patient has history of hypertension, currently on lisinopril 10mg daily. No known allergies.",
+        summary: "",
+        session_type: 'consultation',
+        status: 'active'
+      });
+
+      if (newSession) {
+        setCurrentSession(newSession);
+        setTranscription(newSession.notes || "");
+        setAiOutput("");
+        setIsPinned(false);
+        toast({ title: "New session created!" });
+      }
+    } catch (error) {
+      toast({
+        title: "Error creating session",
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const saveCurrentSession = () => {
+  const saveCurrentSession = async () => {
     if (!currentSession) return;
     
-    const updatedSession = {
-      ...currentSession,
-      transcription,
-      aiOutput,
-      isPinned
-    };
-    
-    const updatedSessions = sessions.map(s => 
-      s.id === currentSession.id ? updatedSession : s
-    );
-    
-    setSessions(updatedSessions);
-    setCurrentSession(updatedSession);
-    localStorage.setItem(`medassist-sessions-${patientId}`, JSON.stringify(updatedSessions));
+    try {
+      await updateSession(currentSession.id, {
+        notes: transcription,
+        summary: aiOutput,
+        status: 'completed'
+      });
+      
+      toast({ title: "Session saved successfully!" });
+    } catch (error) {
+      toast({
+        title: "Error saving session",
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const generateAIOutput = () => {
     const mockOutput = {
       chiefComplaint: "Chest pain",
-      hpi: "45-year-old male presents with acute onset chest pain this morning. Pain is sharp, 7/10 severity, radiating to left arm. Denies shortness of breath, nausea, or diaphoresis.",
-      pmh: "Hypertension",
+      hpi: `${patient?.age || 45}-year-old ${patient?.gender?.toLowerCase() || 'male'} presents with acute onset chest pain this morning. Pain is sharp, 7/10 severity, radiating to left arm. Denies shortness of breath, nausea, or diaphoresis.`,
+      pmh: patient?.condition || "Hypertension",
       medications: "Lisinopril 10mg daily",
       allergies: "NKDA",
       assessment: "Chest pain, rule out acute coronary syndrome vs musculoskeletal",
@@ -120,14 +135,24 @@ const PatientSessions = () => {
     
     const output = JSON.stringify(mockOutput, null, 2);
     setAiOutput(output);
-    
-    // Auto-save after generating AI output
-    setTimeout(saveCurrentSession, 100);
+    toast({ title: "AI analysis generated!" });
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(aiOutput);
+    toast({ title: "Copied to clipboard!" });
   };
+
+  if (loading || !patient) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1976D2]"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -146,11 +171,15 @@ const PatientSessions = () => {
               </Link>
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 md:w-10 md:h-10 bg-[#1976D2] rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm md:text-base font-medium">{mockPatient.avatar}</span>
+                  <span className="text-white text-sm md:text-base font-medium">
+                    {patient.avatar || patient.name.split(' ').map((n: string) => n[0]).join('')}
+                  </span>
                 </div>
                 <div>
-                  <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{mockPatient.name}</h1>
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">{mockPatient.age} • {mockPatient.gender} • {mockPatient.condition}</p>
+                  <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{patient.name}</h1>
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                    {patient.age} • {patient.gender} • {patient.condition}
+                  </p>
                 </div>
               </div>
               {currentSession && (
@@ -188,13 +217,11 @@ const PatientSessions = () => {
               {/* Voice Recording Card */}
               <Card className="dark:bg-gray-800 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
+                  <CardTitle className="text-base md:text-lg flex items-center space-x-2">
                     <Mic className="h-4 w-4 md:h-5 md:w-5" />
                     <span>Voice Recording</span>
                   </CardTitle>
-                  <CardDescription className="text-sm">
-                    Click to start/stop recording your consultation
-                  </CardDescription>
+                  <CardDescription>Click to start/stop recording your consultation</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
@@ -242,7 +269,7 @@ const PatientSessions = () => {
                 </CardContent>
               </Card>
 
-              {/* Medical File Parser - New Component */}
+              {/* Medical File Parser */}
               <MedicalFileUploader 
                 patientId={patientId!}
                 onFileProcessed={(file) => {
@@ -333,12 +360,12 @@ const PatientSessions = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {sessions.filter(s => s.id !== currentSession.id).reverse().slice(0, 3).map((session) => (
+                      {sessions.filter(s => s.id !== currentSession.id).slice(0, 3).map((session) => (
                         <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                           <div>
-                            <p className="text-sm font-medium dark:text-white">Session #{session.id.slice(-4)}</p>
+                            <p className="text-sm font-medium dark:text-white">{session.title}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {new Date(session.date).toLocaleDateString()}
+                              {new Date(session.created_at).toLocaleDateString()}
                             </p>
                           </div>
                           <Button 
@@ -346,9 +373,9 @@ const PatientSessions = () => {
                             size="sm"
                             onClick={() => {
                               setCurrentSession(session);
-                              setTranscription(session.transcription);
-                              setAiOutput(session.aiOutput);
-                              setIsPinned(session.isPinned);
+                              setTranscription(session.notes || "");
+                              setAiOutput(session.summary || "");
+                              setIsPinned(false);
                             }}
                           >
                             Load

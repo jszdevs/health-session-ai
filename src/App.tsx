@@ -4,51 +4,60 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState } from "react";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import AuthForm from "@/components/AuthForm";
+import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import PatientSessions from "./pages/PatientSessions";
 import PatientDetail from "./pages/PatientDetail";
-import PromptsManager from "./pages/PromptsManager";
+import PatientSessions from "./pages/PatientSessions";
 import SessionMessages from "./pages/SessionMessages";
+import PromptsManager from "./pages/PromptsManager";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
-import DemoMode from "./components/DemoMode";
-import MobileNav from "./components/MobileNav";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const AppContent = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1976D2]"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <MobileNav />
-            <Routes>
-              <Route path="/signin" element={<SignIn onAuth={() => setIsAuthenticated(true)} />} />
-              <Route path="/signup" element={<SignUp onAuth={() => setIsAuthenticated(true)} />} />
-              <Route path="/demo" element={<DemoMode />} />
-              <Route path="/" element={isAuthenticated ? <Dashboard /> : <SignIn onAuth={() => setIsAuthenticated(true)} />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/patients/:patientId" element={<PatientDetail />} />
-              <Route path="/patients/:patientId/sessions" element={<PatientSessions />} />
-              <Route path="/sessions/:sessionId/messages" element={<SessionMessages />} />
-              <Route path="/prompts" element={<PromptsManager />} />
-              <Route path="/profile" element={<UserProfile />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/patient/:patientId" element={<PatientDetail />} />
+      <Route path="/patient/:patientId/sessions" element={<PatientSessions />} />
+      <Route path="/session/:sessionId/messages" element={<SessionMessages />} />
+      <Route path="/prompts" element={<PromptsManager />} />
+      <Route path="/profile" element={<UserProfile />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+);
 
 export default App;
