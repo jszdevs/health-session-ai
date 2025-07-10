@@ -39,6 +39,7 @@ const AppContent = () => {
       <Route path="/patient/:patientId" element={<PatientDetail />} />
       <Route path="/patient/:patientId/sessions" element={<PatientSessions />} />
       <Route path="/session/:sessionId/messages" element={<SessionMessages />} />
+      <Route path="/sessions/:sessionId/messages" element={<SessionMessages />} />
       <Route path="/prompts" element={<PromptsManager />} />
       <Route path="/profile" element={<UserProfile />} />
       <Route path="*" element={<NotFound />} />
