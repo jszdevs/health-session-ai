@@ -45,7 +45,11 @@ const PromptsManager = () => {
         toast({ title: "Prompt updated successfully!" });
         setEditingPrompt(null);
       } else {
-        await createPrompt(formData);
+        const promptData = {
+          ...formData,
+          is_active: true
+        };
+        await createPrompt(promptData);
         toast({ title: "Prompt created successfully!" });
         setIsCreateDialogOpen(false);
       }

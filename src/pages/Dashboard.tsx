@@ -62,7 +62,8 @@ const Dashboard = () => {
         age: parseInt(newPatient.age),
         gender: newPatient.gender,
         condition: newPatient.condition,
-        avatar: newPatient.avatar
+        avatar: newPatient.avatar,
+        tags: []
       };
       
       await createPatient(patientData);
