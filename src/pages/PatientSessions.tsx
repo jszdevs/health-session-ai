@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -83,7 +82,9 @@ const PatientSessions = () => {
         notes: "Patient presents with chest pain that started this morning. Pain is described as sharp, 7/10 intensity, radiating to left arm. No shortness of breath. Patient has history of hypertension, currently on lisinopril 10mg daily. No known allergies.",
         summary: "",
         session_type: 'consultation',
-        status: 'active'
+        status: 'active',
+        date: new Date().toISOString(),
+        duration: null
       });
 
       if (newSession) {
