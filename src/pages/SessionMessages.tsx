@@ -7,48 +7,65 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, RefreshCw, Edit3, MessageSquare, Bot } from "lucide-react";
+import { useSessionMessages } from "@/hooks/useSessionMessages";
+import { useToast } from "@/hooks/use-toast";
 
 const SessionMessages = () => {
   const { sessionId } = useParams();
+  const { messages, loading, createMessage } = useSessionMessages(sessionId);
+  const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
 
-  const mockMessages = [
-    {
-      id: "1",
-      type: "doctor",
-      content: "Patient presents with chest pain that started this morning. Pain is described as sharp, 7/10 intensity, radiating to left arm. No shortness of breath. Patient has history of hypertension, currently on lisinopril 10mg daily.",
-      timestamp: "10:15 AM",
-      edited: false
-    },
-    {
-      id: "2", 
-      type: "assistant",
-      content: "Based on your clinical description, here's the structured assessment:\n\n**Chief Complaint:** Chest pain\n\n**HPI:** 45-year-old male with acute onset sharp chest pain (7/10), radiating to left arm, started this morning. Denies SOB.\n\n**PMH:** Hypertension\n\n**Medications:** Lisinopril 10mg daily\n\n**Assessment:** Chest pain - need to rule out ACS vs musculoskeletal\n\n**Recommendations:**\n1. Obtain EKG immediately\n2. Cardiac enzymes (troponin)\n3. Chest X-ray\n4. Consider cardiology consult if abnormal",
-      timestamp: "10:16 AM",
-      edited: false
-    },
-    {
-      id: "3",
-      type: "doctor", 
-      content: "EKG shows normal sinus rhythm, no ST changes. Troponin levels pending. Patient appears comfortable at rest.",
-      timestamp: "10:25 AM",
-      edited: false
-    },
-    {
-      id: "4",
-      type: "assistant",
-      content: "Great - normal EKG is reassuring for ruling out STEMI. With pending troponin:\n\n**Updated Assessment:** Chest pain, likely non-cardiac given normal EKG and patient comfort\n\n**Next Steps:**\n1. Await troponin results\n2. If troponin normal, consider musculoskeletal cause\n3. Stress test if high suspicion despite normal initial workup\n4. Discharge planning with follow-up if troponin negative\n\n**Patient Education:** Return for worsening pain, SOB, or new symptoms",
-      timestamp: "10:26 AM", 
-      edited: false
-    }
-  ];
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      console.log("Sending message:", newMessage);
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !sessionId) return;
+    
+    try {
+      await createMessage({
+        session_id: sessionId,
+        message: newMessage,
+        sender: 'user'
+      });
+      
       setNewMessage("");
+      
+      // Simulate AI response
+      setTimeout(async () => {
+        await createMessage({
+          session_id: sessionId,
+          message: generateAIResponse(newMessage),
+          sender: 'assistant'
+        });
+      }, 1000);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
     }
   };
+
+  const generateAIResponse = (userMessage: string) => {
+    const responses = [
+      "Based on your clinical description, here's my assessment:\n\n**Chief Complaint:** Patient presents with the described symptoms\n\n**Recommendations:**\n1. Consider further diagnostic testing\n2. Monitor vital signs\n3. Follow up in 24-48 hours\n\n**Next Steps:** Please provide additional details about the patient's medical history.",
+      "Thank you for the additional information. This helps clarify the clinical picture:\n\n**Updated Assessment:** The symptoms suggest we should consider differential diagnoses\n\n**Suggested Actions:**\n1. Order relevant lab work\n2. Consider imaging if indicated\n3. Review medication list\n\n**Patient Education:** Discuss warning signs to watch for",
+      "I understand your concern. Let me provide a structured analysis:\n\n**Clinical Reasoning:** The presentation is consistent with several possibilities\n\n**Immediate Actions:**\n1. Assess vital stability\n2. Pain management if appropriate\n3. Consider specialist referral\n\n**Documentation:** Make sure to document the timeline and severity"
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1976D2]"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -67,7 +84,7 @@ const SessionMessages = () => {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Session Messages</h1>
-                <p className="text-sm text-gray-600">Session #{sessionId} • Ali Rehman</p>
+                <p className="text-sm text-gray-600">Session #{sessionId?.slice(-8)} • AI Assistant</p>
               </div>
               <Badge className="bg-[#81C784] text-white">Active Session</Badge>
             </div>
@@ -79,14 +96,14 @@ const SessionMessages = () => {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-auto p-6 space-y-4">
-          {mockMessages.map((message) => (
+          {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.type === "doctor" ? "justify-end" : "justify-start"}`}
+              className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               <Card 
                 className={`max-w-3xl ${
-                  message.type === "doctor" 
+                  message.sender === "user" 
                     ? "bg-[#1976D2] text-white" 
                     : "bg-white border border-gray-200"
                 }`}
@@ -94,30 +111,30 @@ const SessionMessages = () => {
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.type === "doctor" 
+                      message.sender === "user" 
                         ? "bg-white/20" 
                         : "bg-[#E3F2FD]"
                     }`}>
-                      {message.type === "doctor" ? (
-                        <MessageSquare className={`h-4 w-4 ${message.type === "doctor" ? "text-white" : "text-[#1976D2]"}`} />
+                      {message.sender === "user" ? (
+                        <MessageSquare className={`h-4 w-4 ${message.sender === "user" ? "text-white" : "text-[#1976D2]"}`} />
                       ) : (
-                        <Bot className={`h-4 w-4 ${message.type === "doctor" ? "text-white" : "text-[#1976D2]"}`} />
+                        <Bot className={`h-4 w-4 ${message.sender === "user" ? "text-white" : "text-[#1976D2]"}`} />
                       )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className={`text-sm font-medium ${
-                          message.type === "doctor" ? "text-white/90" : "text-gray-600"
+                          message.sender === "user" ? "text-white/90" : "text-gray-600"
                         }`}>
-                          {message.type === "doctor" ? "Dr. Smith" : "AI Assistant"}
+                          {message.sender === "user" ? "You" : "AI Assistant"}
                         </span>
                         <div className="flex items-center space-x-2">
                           <span className={`text-xs ${
-                            message.type === "doctor" ? "text-white/70" : "text-gray-500"
+                            message.sender === "user" ? "text-white/70" : "text-gray-500"
                           }`}>
-                            {message.timestamp}
+                            {new Date(message.created_at!).toLocaleTimeString()}
                           </span>
-                          {message.type === "doctor" && (
+                          {message.sender === "user" && (
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -126,7 +143,7 @@ const SessionMessages = () => {
                               <Edit3 className="h-3 w-3" />
                             </Button>
                           )}
-                          {message.type === "assistant" && (
+                          {message.sender === "assistant" && (
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -138,9 +155,9 @@ const SessionMessages = () => {
                         </div>
                       </div>
                       <p className={`text-sm whitespace-pre-wrap ${
-                        message.type === "doctor" ? "text-white" : "text-gray-900"
+                        message.sender === "user" ? "text-white" : "text-gray-900"
                       }`}>
-                        {message.content}
+                        {message.message}
                       </p>
                     </div>
                   </div>
@@ -148,6 +165,12 @@ const SessionMessages = () => {
               </Card>
             </div>
           ))}
+
+          {messages.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No messages yet. Start the conversation!</p>
+            </div>
+          )}
         </div>
 
         {/* Message Input */}
